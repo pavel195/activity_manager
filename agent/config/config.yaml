@@ -1,0 +1,21 @@
+# Конфигурация агента мониторинга
+
+# Настройки сервера
+server:
+  url: "${SERVER_URL}"  # Загружается из .env
+  api_key: "${API_KEY}"  # Загружается из .env
+  timeout: 10  # секунды
+
+# Настройки мониторинга
+monitoring:
+  interval: 5  # секунды между проверками
+  processes:
+    - "chrome.exe"
+    - "yandex.exe"
+    - "telegram.exe"
+    - "explorer.exe"
+  
+# Настройки логирования
+logging:
+  level: "INFO"  # DEBUG, INFO, WARNING, ERROR, CRITICAL
+  file: "logs/agent.log" 

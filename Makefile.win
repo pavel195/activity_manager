@@ -1,0 +1,69 @@
+@echo off
+REM Makefile для Windows
+
+if "%1"=="" goto help
+if "%1"=="help" goto help
+if "%1"=="setup-env" goto setup-env
+if "%1"=="setup-dirs" goto setup-dirs
+if "%1"=="setup-agent" goto setup-agent
+if "%1"=="agent" goto agent
+if "%1"=="clean" goto clean
+
+echo Неизвестная команда: %1
+goto end
+
+:help
+echo Система мониторинга процессов Windows
+echo.
+echo Доступные команды:
+echo   make.bat setup-env     - Создать файл .env из шаблона
+echo   make.bat setup-dirs    - Создать необходимые директории
+echo   make.bat setup-agent   - Подготовить агент для Windows
+echo   make.bat agent         - Запустить агент
+echo   make.bat clean         - Очистить временные файлы
+echo.
+goto end
+
+:setup-env
+echo Проверка наличия файла .env...
+if not exist .env (
+    echo Файл .env не найден. Создаем из шаблона...
+    copy .env.example .env
+    echo Файл .env создан. Пожалуйста, отредактируйте его с вашими настройками.
+) else (
+    echo Файл .env уже существует.
+)
+goto end
+
+:setup-dirs
+echo Создание необходимых директорий...
+if not exist agent\logs mkdir agent\logs
+echo Директории созданы.
+goto end
+
+:setup-agent
+echo Подготовка агента для Windows...
+call :setup-env
+call :setup-dirs
+if not exist agent (
+    echo Ошибка: Директория agent не найдена.
+    goto end
+)
+echo Агент готов к запуску.
+goto end
+
+:agent
+echo Запуск агента...
+call :setup-agent
+cd agent
+call start_agent.bat
+cd ..
+goto end
+
+:clean
+echo Очистка временных файлов...
+if exist agent\logs\*.log del /Q agent\logs\*.log
+echo Очистка завершена.
+goto end
+
+:end 

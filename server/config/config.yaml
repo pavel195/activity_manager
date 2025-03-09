@@ -1,0 +1,33 @@
+# Конфигурация сервера мониторинга
+
+# Настройки API
+api:
+  host: "0.0.0.0"
+  port: 8000
+  debug: false
+  key: "${API_KEY}"  # Загружается из .env
+
+# Настройки базы данных PostgreSQL
+database:
+  host: "${DB_HOST}"  # Загружается из .env
+  port: ${DB_PORT}  # Загружается из .env
+  name: "${DB_NAME}"  # Загружается из .env
+  user: "${DB_USER}"  # Загружается из .env
+  password: "${DB_PASSWORD}"  # Загружается из .env
+
+# Настройки Elasticsearch
+elasticsearch:
+  hosts: ["${ES_HOSTS}"]  # Загружается из .env
+  index_prefix: "monitoring"
+  username: "${ES_USERNAME}"  # Загружается из .env
+  password: "${ES_PASSWORD}"  # Загружается из .env
+
+# Настройки Telegram
+telegram:
+  bot_token: "${TELEGRAM_BOT_TOKEN}"  # Загружается из .env
+  chat_id: "${TELEGRAM_CHAT_ID}"  # Загружается из .env
+  
+# Настройки логирования
+logging:
+  level: "INFO"  # DEBUG, INFO, WARNING, ERROR, CRITICAL
+  file: "logs/server.log" 

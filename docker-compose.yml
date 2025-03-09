@@ -1,0 +1,95 @@
+version: '3.8'
+
+services:
+  # База данных PostgreSQL
+  postgres:
+    image: postgres:14
+    container_name: monitoring-postgres
+    environment:
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Elasticsearch
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.10.1
+    container_name: monitoring-elasticsearch
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=true
+      - ELASTIC_PASSWORD=${ES_PASSWORD}
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    volumes:
+      - elasticsearch_data:/usr/share/elasticsearch/data
+    ports:
+      - "9200:9200"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "curl -s http://localhost:9200/_cluster/health | grep -q '\"status\":\"green\"\\|\"status\":\"yellow\"'"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  # Kibana для визуализации данных
+  kibana:
+    image: docker.elastic.co/kibana/kibana:8.10.1
+    container_name: monitoring-kibana
+    environment:
+      - ELASTICSEARCH_HOSTS=${ES_HOSTS}
+      - ELASTICSEARCH_USERNAME=${ES_USERNAME}
+      - ELASTICSEARCH_PASSWORD=${ES_PASSWORD}
+    ports:
+      - "5601:5601"
+    depends_on:
+      - elasticsearch
+    restart: unless-stopped
+
+  # Сервер мониторинга
+  server:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    container_name: monitoring-server
+    volumes:
+      - ./server/config:/app/config
+      - server_logs:/app/logs
+      - ./.env:/app/.env
+    ports:
+      - "8000:8000"
+    depends_on:
+      - postgres
+      - elasticsearch
+    restart: unless-stopped
+    environment:
+      - TZ=Europe/Moscow
+
+  # Агент мониторинга (только для сборки, не для запуска в контейнере)
+  # Примечание: Агент должен запускаться на Windows-хостах напрямую
+  agent:
+    build:
+      context: ./agent
+      dockerfile: Dockerfile
+    container_name: monitoring-agent
+    volumes:
+      - ./agent/config:/app/config
+      - agent_logs:/app/logs
+      - ./.env:/app/.env
+    restart: "no"
+    profiles:
+      - donotstart
+
+volumes:
+  postgres_data:
+  elasticsearch_data:
+  server_logs:
+  agent_logs: 
