@@ -1,0 +1,26 @@
+{
+  "telegram_token": "",
+  "chat_id": "",
+  "vt_api_key": "",
+  "features": {
+    "track_processes": true,
+    "track_services": true,
+    "track_logins": true,
+    "daily_report": true
+  },
+  "monitoring": {
+    "process_whitelist": [],
+    "service_whitelist": [],
+    "task_whitelist": []
+  },
+  "reporting": {
+    "report_time": "20:00",
+    "report_format": "markdown"
+  },
+  "docker": {
+    "enabled": true,
+    "evtx_path": "/winevt/Logs",
+    "log_dir": "/app/logs",
+    "data_dir": "/app/data"
+  }
+} 

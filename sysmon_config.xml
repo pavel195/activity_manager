@@ -1,0 +1,61 @@
+<Sysmon schemaversion="4.82">
+  <HashAlgorithms>*</HashAlgorithms>
+  <EventFiltering>
+    <!-- Process Creation -->
+    <RuleGroup name="ProcessCreate" groupRelation="or">
+      <ProcessCreate onmatch="include">
+        <Rule name="ProcessCreateAll" groupRelation="or">
+          <Image condition="contains">cmd.exe</Image>
+          <Image condition="contains">powershell.exe</Image>
+          <Image condition="contains">wscript.exe</Image>
+          <Image condition="contains">cscript.exe</Image>
+          <Image condition="contains">rundll32.exe</Image>
+          <Image condition="contains">regsvr32.exe</Image>
+          <Image condition="contains">mshta.exe</Image>
+          <Image condition="contains">bitsadmin.exe</Image>
+          <Image condition="contains">certutil.exe</Image>
+          <Image condition="contains">psexec.exe</Image>
+          <Image condition="contains">services.exe</Image>
+        </Rule>
+      </ProcessCreate>
+    </RuleGroup>
+
+    <!-- Network Connection -->
+    <RuleGroup name="NetworkConnect" groupRelation="or">
+      <NetworkConnect onmatch="include">
+        <Rule name="SuspiciousNetworkConnect" groupRelation="or">
+          <DestinationPort condition="is">445</DestinationPort>
+          <DestinationPort condition="is">3389</DestinationPort>
+          <DestinationPort condition="is">4444</DestinationPort>
+          <DestinationPort condition="is">5985</DestinationPort>
+          <DestinationPort condition="is">5986</DestinationPort>
+        </Rule>
+      </NetworkConnect>
+    </RuleGroup>
+
+    <!-- File Creation -->
+    <RuleGroup name="FileCreate" groupRelation="or">
+      <FileCreate onmatch="include">
+        <Rule name="ExecutableFileCreation" groupRelation="or">
+          <TargetFilename condition="end with">.exe</TargetFilename>
+          <TargetFilename condition="end with">.dll</TargetFilename>
+          <TargetFilename condition="end with">.bat</TargetFilename>
+          <TargetFilename condition="end with">.ps1</TargetFilename>
+          <TargetFilename condition="end with">.vbs</TargetFilename>
+        </Rule>
+      </FileCreate>
+    </RuleGroup>
+
+    <!-- Registry Events -->
+    <RuleGroup name="RegistryEvent" groupRelation="or">
+      <RegistryEvent onmatch="include">
+        <Rule name="SuspiciousRegistryEvents" groupRelation="or">
+          <TargetObject condition="contains">Run</TargetObject>
+          <TargetObject condition="contains">RunOnce</TargetObject>
+          <TargetObject condition="contains">Image File Execution Options</TargetObject>
+          <TargetObject condition="contains">CurrentControlSet\Services</TargetObject>
+        </Rule>
+      </RegistryEvent>
+    </RuleGroup>
+  </EventFiltering>
+</Sysmon> 

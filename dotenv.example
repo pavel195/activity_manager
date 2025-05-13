@@ -1,0 +1,9 @@
+# Telegram API
+TELEGRAM_TOKEN=
+CHAT_ID=
+
+# VirusTotal API (опционально)
+VT_API_KEY=
+
+# Другие секретные данные (при необходимости)
+# SERVICE_PASSWORD= 

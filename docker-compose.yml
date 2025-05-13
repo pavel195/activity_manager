@@ -1,95 +1,43 @@
 version: '3.8'
 
 services:
-  # База данных PostgreSQL
-  postgres:
-    image: postgres:14
-    container_name: monitoring-postgres
-    environment:
-      POSTGRES_DB: ${DB_NAME}
-      POSTGRES_USER: ${DB_USER}
-      POSTGRES_PASSWORD: ${DB_PASSWORD}
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    ports:
-      - "5432:5432"
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  # Elasticsearch
-  elasticsearch:
-    image: docker.elastic.co/elasticsearch/elasticsearch:8.10.1
-    container_name: monitoring-elasticsearch
-    environment:
-      - discovery.type=single-node
-      - xpack.security.enabled=true
-      - ELASTIC_PASSWORD=${ES_PASSWORD}
-      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
-    volumes:
-      - elasticsearch_data:/usr/share/elasticsearch/data
-    ports:
-      - "9200:9200"
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD-SHELL", "curl -s http://localhost:9200/_cluster/health | grep -q '\"status\":\"green\"\\|\"status\":\"yellow\"'"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-
-  # Kibana для визуализации данных
-  kibana:
-    image: docker.elastic.co/kibana/kibana:8.10.1
-    container_name: monitoring-kibana
-    environment:
-      - ELASTICSEARCH_HOSTS=${ES_HOSTS}
-      - ELASTICSEARCH_USERNAME=${ES_USERNAME}
-      - ELASTICSEARCH_PASSWORD=${ES_PASSWORD}
-    ports:
-      - "5601:5601"
-    depends_on:
-      - elasticsearch
-    restart: unless-stopped
-
-  # Сервер мониторинга
-  server:
+  windows-monitor-agent:
     build:
-      context: ./server
+      context: .
       dockerfile: Dockerfile
-    container_name: monitoring-server
-    volumes:
-      - ./server/config:/app/config
-      - server_logs:/app/logs
-      - ./.env:/app/.env
-    ports:
-      - "8000:8000"
-    depends_on:
-      - postgres
-      - elasticsearch
+    image: windows-monitor-agent:latest
+    container_name: windows-monitor-agent
     restart: unless-stopped
+    volumes:
+      - ./config.json:/app/config.json:ro
+      - ./.env:/app/.env:ro
+      - ./logs:/app/logs
+      - ./data:/app/data
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      # Монтируем Windows Event Logs (требуется для доступа к логам Windows)
+      - type: bind
+        source: C:/Windows/System32/winevt/Logs
+        target: /winevt/Logs
+        read_only: true
     environment:
       - TZ=Europe/Moscow
+    # Конфигурация привилегий для доступа к системным компонентам Windows
+    privileged: true
+    networks:
+      - monitor-network
 
-  # Агент мониторинга (только для сборки, не для запуска в контейнере)
-  # Примечание: Агент должен запускаться на Windows-хостах напрямую
-  agent:
-    build:
-      context: ./agent
-      dockerfile: Dockerfile
-    container_name: monitoring-agent
+  # Опциональный сервис для просмотра логов через веб-интерфейс
+  log-viewer:
+    image: amir20/dozzle:latest
+    container_name: log-viewer
+    restart: unless-stopped
     volumes:
-      - ./agent/config:/app/config
-      - agent_logs:/app/logs
-      - ./.env:/app/.env
-    restart: "no"
-    profiles:
-      - donotstart
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    ports:
+      - "8080:8080"
+    networks:
+      - monitor-network
 
-volumes:
-  postgres_data:
-  elasticsearch_data:
-  server_logs:
-  agent_logs: 
+networks:
+  monitor-network:
+    driver: bridge 

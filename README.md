@@ -1,127 +1,144 @@
-# Система мониторинга процессов Windows
+# Windows Monitor Agent
 
-Распределённое приложение для мониторинга запуска программ на Windows с централизованным сбором данных и уведомлениями в Telegram.
+Система мониторинга активности на ПК под управлением Windows и отправки уведомлений в Telegram.
 
-## Компоненты системы
+## Возможности
 
-### Агент (клиентская часть)
-- Устанавливается на ПК пользователей под управлением Windows
-- Отслеживает запуск определённых программ (Chrome, Yandex, Telegram, Проводник)
-- Передаёт данные о событиях на сервер
+- Мониторинг и уведомления о ключевых событиях Windows:
+  - Включение компьютера
+  - Вход пользователей в систему
+  - Запуск подозрительных процессов
+  - Установка новых служб
+  - Создание задач в планировщике
+  
+- Telegram бот с командами:
+  - `/status` - текущий статус системы и последние события
+  - `/report` - отчет о событиях за день
+  - `/help` - справка
 
-### Сервер (централизованная часть)
-- Принимает данные от агентов
-- Сохраняет их в PostgreSQL и Elasticsearch
-- Отправляет уведомления в Telegram
+- Обнаружение подозрительной активности:
+  - Проверка процессов на подозрительные признаки
+  - Интеграция с ClamAV и VirusTotal
+  
+- Ежедневные отчеты
 
-## Установка и настройка
+## Системные требования
 
-### Запуск с использованием Makefile (рекомендуется)
+- Windows 10/11 или Windows Server 2016/2019/2022
+- Python 3.7+
+- Права администратора для установки
 
-#### Linux/macOS:
+## Установка
 
-1. Клонируйте репозиторий:
+### 1. Клонирование репозитория
+
 ```bash
-git clone https://github.com/yourusername/windows_manager.git
-cd windows_manager
+git clone https://github.com/yourusername/windows-monitor-agent.git
+cd windows-monitor-agent
 ```
 
-2. Настройте конфигурационные файлы:
-   - `server/config/config.yaml` - настройки сервера
-   - `agent/config/config.yaml` - настройки агента
+### 2. Установка зависимостей
 
-3. Запустите серверную часть:
 ```bash
-make server
-```
-
-4. Просмотр доступных команд:
-```bash
-make help
-```
-
-#### Windows:
-
-1. Клонируйте репозиторий и перейдите в директорию проекта.
-
-2. Настройте конфигурационные файлы:
-   - `server/config/config.yaml` - настройки сервера
-   - `agent/config/config.yaml` - настройки агента
-
-3. Запустите агент:
-```cmd
-make agent
-```
-
-4. Просмотр доступных команд:
-```cmd
-make help
-```
-
-### Запуск с использованием Docker Compose
-
-1. Запустите серверную часть:
-```bash
-docker-compose up -d postgres elasticsearch kibana server
-```
-
-2. Для запуска агента на Windows-машине:
-```bash
-cd agent
 pip install -r requirements.txt
-python src/main.py
 ```
 
-### Ручная установка
+### 3. Настройка конфигурации
 
-#### Агент
+#### Метод 1: Использование .env файла (рекомендуется)
+
+Создайте файл `.env` в корне проекта на основе примера `dotenv.example`:
+
 ```bash
-cd agent
-pip install -r requirements.txt
-# Настройте config/config.yaml
-python src/main.py
+cp dotenv.example .env
 ```
 
-#### Сервер
+Отредактируйте файл `.env` и добавьте ваши данные:
+
+```
+# Telegram API
+TELEGRAM_TOKEN=ваш_токен_бота
+CHAT_ID=ваш_id_чата
+
+# VirusTotal API (опционально)
+VT_API_KEY=ваш_ключ_api
+```
+
+#### Метод 2: Использование config.json
+
+Откройте файл `config.json` и внесите необходимые изменения:
+
+```json
+{
+  "telegram_token": "YOUR_TELEGRAM_BOT_TOKEN",
+  "chat_id": "YOUR_TELEGRAM_CHAT_ID",
+  "vt_api_key": "YOUR_VIRUSTOTAL_API_KEY", (опционально)
+  "features": {
+    "track_processes": true,
+    "track_services": true,
+    "track_logins": true,
+    "daily_report": true
+  }
+}
+```
+
+> **Примечание**: Если одновременно настроены оба файла (`.env` и `config.json`), значения из `.env` имеют приоритет.
+
+Для получения `telegram_token` создайте бота через [@BotFather](https://t.me/BotFather).
+Для получения `chat_id` отправьте сообщение боту [@getidsbot](https://t.me/getidsbot).
+
+### 4. Установка Sysmon (опционально, рекомендуется)
+
+1. Загрузите [Sysmon](https://docs.microsoft.com/en-us/sysinternals/downloads/sysmon) от Microsoft Sysinternals
+2. Скопируйте `Sysmon.exe` в `C:/ProgramData/WindowsMonitor/tools/`
+3. Запустите установку командой:
+
 ```bash
-cd server
-pip install -r requirements.txt
-# Настройте config/config.yaml
-python src/main.py
+python scripts/install_service.py --sysmon
 ```
 
-## Доступ к компонентам
+### 5. Установка агента как службы Windows
 
-- **API сервера**: http://localhost:8000
-- **Kibana**: http://localhost:5601
-- **Elasticsearch**: http://localhost:9200
+```bash
+python scripts/install_service.py --install
+```
 
-## Требования
-- Python 3.8+
-- PostgreSQL
-- Elasticsearch
-- Доступ к Telegram Bot API
-- Docker и Docker Compose (для запуска в контейнерах)
+## Ручной запуск
+
+Для запуска агента без установки службы:
+
+```bash
+python src/agent/main.py --config config.json --log-dir ./logs
+```
+
+## Удаление
+
+Для удаления службы:
+
+```bash
+python scripts/install_service.py --uninstall
+```
 
 ## Структура проекта
 
 ```
-windows_manager/
-├── agent/                  # Клиентская часть (агент)
-│   ├── config/             # Конфигурационные файлы агента
-│   ├── src/                # Исходный код агента
-│   ├── Dockerfile          # Dockerfile для сборки агента
-│   └── requirements.txt    # Зависимости агента
-├── server/                 # Серверная часть
-│   ├── config/             # Конфигурационные файлы сервера
-│   ├── src/                # Исходный код сервера
-│   │   ├── api/            # API модуль
-│   │   ├── db/             # Модуль базы данных
-│   │   └── telegram/       # Модуль Telegram
-│   ├── Dockerfile          # Dockerfile для сборки сервера
-│   └── requirements.txt    # Зависимости сервера
-├── Makefile                # Makefile для Linux/macOS
-├── Makefile.win            # Makefile для Windows
-├── make.bat                # Скрипт запуска Makefile.win
-└── docker-compose.yml      # Конфигурация Docker Compose
-``` 
+windows-monitor-agent/
+├── config.json                # Конфигурация агента
+├── requirements.txt           # Зависимости Python
+├── sysmon_config.xml          # Конфигурация Sysmon
+├── src/                       # Исходный код
+│   └── agent/                 # Модули агента
+│       ├── __init__.py
+│       ├── main.py            # Основной модуль
+│       ├── event_monitor.py   # Мониторинг событий
+│       ├── event_handler.py   # Обработчик событий
+│       └── telegram_notifier.py # Telegram интеграция
+├── scripts/                   # Скрипты установки
+│   └── install_service.py     # Установка службы Windows
+└── data/                      # Директория для данных
+    └── events/                # Сохраненные события
+```
+
+## Лицензия
+
+MIT 
