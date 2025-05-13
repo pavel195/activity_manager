@@ -16,12 +16,5 @@
   "reporting": {
     "report_time": "20:00",
     "report_format": "markdown"
-  },
-  "docker": {
-    "enabled": true,
-    "evtx_path": "/winevt/Logs",
-    "log_dir": "/app/logs",
-    "data_dir": "/app/data",
-    "wsl": true
   }
 } 

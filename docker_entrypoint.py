@@ -53,6 +53,11 @@ def setup_logging():
     
     return logger
 
+def check_wsl_env():
+    """Проверка запуска в среде WSL"""
+    # Проверяем характерные признаки WSL
+    return os.path.exists('/proc/sys/fs/binfmt_misc/WSLInterop')
+
 def prepare_environment():
     """Подготовка окружения для запуска в Docker"""
     logger = logging.getLogger('DockerAgent')
@@ -85,6 +90,21 @@ def prepare_environment():
     # Проверяем конфигурацию
     try:
         config = load_config(CONFIG_PATH)
+        
+        # Проверяем, запущены ли мы в WSL
+        is_wsl = check_wsl_env()
+        if is_wsl:
+            logger.info("Обнаружена среда WSL")
+            # Устанавливаем флаг WSL в конфигурации
+            if 'docker' in config:
+                config['docker']['wsl'] = True
+                
+            # Проверяем доступ к Windows Event Logs
+            evtx_path = Path('/winevt/Logs')
+            if not evtx_path.exists():
+                logger.warning(f"Путь к Windows Event Logs не найден: {evtx_path}")
+                logger.warning("Убедитесь, что том смонтирован корректно из WSL")
+        
         missing_vars = check_required_env_vars(config)
         if missing_vars:
             logger.error(f"Отсутствуют обязательные переменные: {', '.join(missing_vars)}")
